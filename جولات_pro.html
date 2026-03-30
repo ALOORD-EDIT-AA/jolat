@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>جولات دراسية — نظام إدارة المهام الذكي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --p: #4f8ef7;
+  --p2: #2563eb;
+  --p3: #1d4ed8;
+  --accent: #60a5fa;
+  --glow: rgba(79,142,247,0.4);
+  --glow2: rgba(79,142,247,0.18);
+  --bg: #06080f;
+  --bg2: #0a0e1a;
+  --bg3: #0f1628;
+  --card: rgba(255,255,255,0.035);
+  --card2: rgba(255,255,255,0.07);
+  --card3: rgba(255,255,255,0.10);
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --border3: rgba(79,142,247,0.35);
+  --text: #eef2ff;
+  --text2: #94a3b8;
+  --text3: #4b5e7a;
+  --success: #10b981;
+  --danger: #f43f5e;
+  --warn: #f59e0b;
+  --radius: 20px;
+  --radius2: 14px;
+  --radius3: 10px;
+  --trans: all 0.3s cubic-bezier(0.4,0,0.2,1);
+  --shadow: 0 8px 32px rgba(0,0,0,0.45);
+  --shadow2: 0 24px 60px rgba(0,0,0,0.55);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Cairo', 'Tajawal', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  direction: rtl;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== ANIMATED BACKGROUND ===== */
+.bg-scene {
+  position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+}
+.bg-mesh {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 90% 70% at 70% -10%, rgba(37,99,235,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 10% 80%, rgba(124,58,237,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 90%, rgba(8,145,178,0.1) 0%, transparent 60%),
+    linear-gradient(160deg, #06080f 0%, #070a15 50%, #060810 100%);
+}
+.bg-lines {
+  position: absolute; inset: 0; opacity: 0.025;
+  background-image: repeating-linear-gradient(
+    0deg, transparent, transparent 60px,
+    rgba(255,255,255,0.8) 60px, rgba(255,255,255,0.8) 61px
+  ),
+  repeating-linear-gradient(
+    90deg, transparent, transparent 60px,
+    rgba(255,255,255,0.8) 60px, rgba(255,255,255,0.8) 61px
+  );
+}
+.bg-orb {
+  position: absolute; border-radius: 50%; filter: blur(90px);
+  animation: orbFloat ease-in-out infinite;
+}
+.bg-orb:nth-child(1) {
+  width: 700px; height: 700px; top: -250px; right: -150px; opacity: 0.35;
+  background: radial-gradient(circle, var(--p) 0%, transparent 65%);
+  animation-duration: 22s;
+}
+.bg-orb:nth-child(2) {
+  width: 600px; height: 600px; bottom: -200px; left: -150px; opacity: 0.28;
+  background: radial-gradient(circle, #7c3aed 0%, transparent 65%);
+  animation-duration: 28s; animation-delay: -10s;
+}
+.bg-orb:nth-child(3) {
+  width: 450px; height: 450px; top: 45%; left: 35%; opacity: 0.2;
+  background: radial-gradient(circle, #0891b2 0%, transparent 65%);
+  animation-duration: 34s; animation-delay: -18s;
+}
+.particle {
+  position: absolute; border-radius: 50%;
+  background: var(--p); opacity: 0;
+  animation: particleRise linear infinite;
+}
+@keyframes orbFloat {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33% { transform: translate(50px,-40px) scale(1.06); }
+  66% { transform: translate(-35px,50px) scale(0.94); }
+}
+@keyframes particleRise {
+  0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+  8% { opacity: 0.7; }
+  92% { opacity: 0.25; }
+  100% { transform: translateY(-120px) translateX(var(--drift,0px)); opacity: 0; }
+}
+
+/* ===== LAYOUT ===== */
+.app { position: relative; z-index: 1; min-height: 100vh; }
+.container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+/* ===== HEADER ===== */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(28px) saturate(200%);
+  background: rgba(6,8,15,0.72);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+}
+.header::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--p), var(--accent), transparent);
+  opacity: 0.4;
+}
+.header-inner {
+  max-width: 1120px; margin: 0 auto;
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 0; flex-wrap: wrap;
+}
+.logo {
+  display: flex; align-items: center; gap: 12px;
+  text-decoration: none; flex-shrink: 0;
+}
+.logo-icon {
+  width: 46px; height: 46px; border-radius: 14px;
+  background: linear-gradient(135deg, var(--p), var(--p3));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: #fff;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 0 24px var(--glow);
+  position: relative; overflow: hidden;
+}
+.logo-icon::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+}
+.logo-text { line-height: 1.2; }
+.logo-title { font-size: 17px; font-weight: 900; color: var(--text); letter-spacing: -0.3px; }
+.logo-sub { font-size: 11px; font-weight: 500; color: var(--text3); }
+
+.header-spacer { flex: 1; }
+
+/* Day Nav */
+.day-nav {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 50px; padding: 5px 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+.day-nav-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: none; cursor: pointer;
+  background: var(--card2); color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; transition: var(--trans);
+}
+.day-nav-btn:hover { background: var(--p); color: #fff; transform: scale(1.1); box-shadow: 0 0 12px var(--glow); }
+.day-nav-btn:active { transform: scale(0.95); }
+.day-nav-today {
+  padding: 0 20px; height: 36px; border-radius: 50px;
+  border: none; cursor: pointer;
+  background: linear-gradient(135deg, var(--p), var(--p2));
+  color: #fff; font-size: 13px; font-weight: 800;
+  font-family: 'Cairo', sans-serif;
+  box-shadow: 0 0 16px var(--glow2), inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: var(--trans); letter-spacing: 0.3px;
+}
+.day-nav-today:hover { box-shadow: 0 0 28px var(--glow); transform: scale(1.04); }
+.day-nav-today:active { transform: scale(0.98); }
+
+/* Clock */
+.header-clock {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius3); padding: 8px 16px;
+  text-align: center; flex-shrink: 0;
+  min-width: 110px;
+}
+.clock-time { font-size: 17px; font-weight: 900; color: var(--accent); letter-spacing: 1.5px; font-family: 'Tajawal', monospace; }
+.clock-date { font-size: 10px; color: var(--text2); margin-top: 2px; }
+.clock-viewing { font-size: 10px; color: var(--warn); margin-top: 1px; }
+
+.btn-header-icon {
+  width: 42px; height: 42px; border-radius: var(--radius3);
+  border: 1px solid var(--border); cursor: pointer;
+  background: var(--card); color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; transition: var(--trans); flex-shrink: 0;
+}
+.btn-header-icon:hover { background: var(--p); color: #fff; border-color: var(--p); box-shadow: 0 0 16px var(--glow); transform: translateY(-1px); }
+.btn-header-icon:active { transform: translateY(0); }
+
+/* ===== THEME BAR ===== */
+.theme-bar {
+  background: rgba(6,8,15,0.55);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+}
+.theme-bar-inner {
+  max-width: 1120px; margin: 0 auto;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.theme-label { font-size: 12px; color: var(--text3); font-weight: 700; flex-shrink: 0; letter-spacing: 0.5px; }
+.theme-options { display: flex; gap: 10px; flex-wrap: wrap; }
+.theme-dot {
+  width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+  border: 2.5px solid transparent; transition: var(--trans);
+  position: relative; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.theme-dot:hover { transform: scale(1.25); }
+.theme-dot.active { border-color: #fff; box-shadow: 0 0 14px currentColor, 0 2px 8px rgba(0,0,0,0.4); transform: scale(1.18); }
+.theme-dot.active::after {
+  content: '✓'; font-size: 12px; color: #fff; font-weight: 900;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+
+/* ===== MAIN ===== */
+.main { padding: 32px 24px 80px; }
+.main-inner { max-width: 1120px; margin: 0 auto; }
+
+/* ===== SECTION HEADER ===== */
+.section-header {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+}
+.section-header-icon {
+  width: 44px; height: 44px; border-radius: 14px;
+  background: linear-gradient(135deg, var(--p), var(--p2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: #fff;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 0 18px var(--glow2);
+  flex-shrink: 0;
+}
+.section-header h2 { font-size: 20px; font-weight: 900; letter-spacing: -0.3px; }
+.section-header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* ===== CARD ===== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(16px);
+  transition: var(--trans);
+  box-shadow: var(--shadow);
+}
+.card:hover { border-color: var(--border2); }
+.card-body { padding: 28px; }
+
+/* ===== ADD ROUND FORM ===== */
+.add-round-card { margin-bottom: 32px; }
+
+.add-round-card .card {
+  background: linear-gradient(145deg, rgba(79,142,247,0.05) 0%, rgba(255,255,255,0.025) 100%);
+  border-color: rgba(79,142,247,0.18);
+}
+
+.form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  margin-bottom: 16px;
+}
+.form-grid-3 {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+  margin-bottom: 16px;
+}
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-group.full { grid-column: 1 / -1; }
+
+label {
+  font-size: 12px; font-weight: 800; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+
+.form-input {
+  background: rgba(255,255,255,0.045);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius2);
+  padding: 13px 16px;
+  color: var(--text);
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px; font-weight: 600;
+  outline: none;
+  transition: var(--trans);
+  width: 100%;
+}
+.form-input:focus {
+  border-color: var(--p);
+  background: rgba(79,142,247,0.07);
+  box-shadow: 0 0 0 4px var(--glow2), 0 4px 16px rgba(0,0,0,0.2);
+}
+.form-input::placeholder { color: var(--text3); font-weight: 500; }
+input[type="time"].form-input { color-scheme: dark; }
+
+/* Time Presets */
+.time-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.preset-btn {
+  padding: 8px 14px; border-radius: 50px;
+  border: 1.5px solid var(--border);
+  background: var(--card2); color: var(--text2);
+  font-size: 12px; font-weight: 700;
+  font-family: 'Cairo', sans-serif;
+  cursor: pointer; transition: var(--trans);
+  letter-spacing: 0.2px;
+}
+.preset-btn:hover {
+  background: rgba(79,142,247,0.15); color: var(--accent);
+  border-color: var(--p); transform: translateY(-1px);
+  box-shadow: 0 4px 14px var(--glow2);
+}
+.preset-btn.selected {
+  background: linear-gradient(135deg, var(--p), var(--p2));
+  color: #fff; border-color: var(--p);
+  box-shadow: 0 4px 14px var(--glow2);
+}
+
+/* PRIMARY BUTTON */
+.btn-primary {
+  width: 100%; padding: 17px;
+  background: linear-gradient(135deg, var(--p) 0%, var(--p2) 60%, var(--p3) 100%);
+  border: none; border-radius: var(--radius2);
+  color: #fff; font-size: 16px; font-weight: 900;
+  font-family: 'Cairo', sans-serif;
+  cursor: pointer; transition: var(--trans);
+  box-shadow: 0 6px 24px var(--glow2), inset 0 1px 0 rgba(255,255,255,0.18);
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  letter-spacing: 0.3px; position: relative; overflow: hidden;
+}
+.btn-primary::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+.btn-primary:hover::before { transform: translateX(100%); }
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 36px var(--glow), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.btn-primary:active { transform: translateY(-1px); }
+.btn-primary i { font-size: 18px; }
+
+/* ===== STATS ===== */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 16px; margin-bottom: 32px;
+}
+.stat-card {
+  padding: 22px 18px; border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--card);
+  backdrop-filter: blur(16px);
+  transition: var(--trans);
+  cursor: default; position: relative; overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.stat-card::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--p), var(--accent));
+  opacity: 0; transition: var(--trans);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.stat-card:hover { transform: translateY(-4px); border-color: var(--border3); box-shadow: 0 16px 48px rgba(0,0,0,0.5); }
+.stat-card:hover::before { opacity: 1; }
+
+.stat-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; margin-bottom: 14px;
+}
+.stat-num {
+  font-size: 34px; font-weight: 900; line-height: 1;
+  background: linear-gradient(135deg, var(--p), var(--accent));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; font-family: 'Tajawal', sans-serif;
+}
+.stat-label { font-size: 12px; color: var(--text2); margin-top: 5px; font-weight: 700; letter-spacing: 0.2px; }
+.stat-progress { margin-top: 10px; }
+.progress-bar-bg {
+  height: 5px; border-radius: 5px;
+  background: rgba(255,255,255,0.08); overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%; border-radius: 5px;
+  background: linear-gradient(90deg, var(--p), var(--accent));
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 0 8px var(--glow2);
+}
+
+/* ===== SESSIONS LIST ===== */
+.sessions-list { display: flex; flex-direction: column; gap: 22px; }
+
+/* ===== SESSION CARD ===== */
+.session-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  transition: var(--trans);
+  animation: cardSlideIn 0.45s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: var(--shadow);
+  position: relative;
+}
+.session-card::before {
+  content: '';
+  position: absolute;
+  right: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, var(--p), var(--accent));
+  opacity: 0; transition: var(--trans);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.session-card:hover { border-color: var(--border2); box-shadow: 0 16px 48px rgba(0,0,0,0.4); }
+.session-card:hover::before { opacity: 1; }
+
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.session-header {
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: 14px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+}
+.session-badge {
+  width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--p), var(--p2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 900; color: #fff;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 4px 16px var(--glow2);
+}
+.session-info { flex: 1; min-width: 0; }
+.session-name { font-size: 16px; font-weight: 900; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.2px; }
+.session-time-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.session-time-display {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--text2); font-weight: 600;
+  background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+  padding: 5px 12px; border-radius: 50px; cursor: pointer;
+  transition: var(--trans);
+}
+.session-time-display:hover { border-color: var(--p); color: var(--accent); background: rgba(79,142,247,0.08); }
+.session-time-display i { font-size: 10px; }
+.session-time-edit { display: none; flex-wrap: wrap; gap: 8px; align-items: center; }
+.session-time-edit.show { display: flex; }
+.time-edit-input {
+  background: rgba(255,255,255,0.08); border: 1.5px solid var(--border);
+  border-radius: var(--radius3); padding: 6px 12px;
+  color: var(--text); font-family: 'Cairo', sans-serif; font-size: 12px;
+  outline: none; color-scheme: dark; width: 130px;
+}
+.time-edit-input:focus { border-color: var(--p); box-shadow: 0 0 0 3px var(--glow2); }
+.btn-save-time, .btn-cancel-time {
+  padding: 6px 14px; border-radius: 50px; border: none;
+  font-family: 'Cairo', sans-serif; font-size: 12px; font-weight: 800;
+  cursor: pointer; transition: var(--trans);
+}
+.btn-save-time { background: var(--p); color: #fff; box-shadow: 0 2px 10px var(--glow2); }
+.btn-save-time:hover { background: var(--p2); transform: translateY(-1px); }
+.btn-cancel-time { background: var(--card2); color: var(--text2); border: 1px solid var(--border); }
+.btn-cancel-time:hover { background: var(--card3); }
+
+.session-header-actions { display: flex; gap: 8px; }
+.btn-icon {
+  width: 38px; height: 38px; border-radius: var(--radius3);
+  border: 1px solid var(--border);
+  background: var(--card2); color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; cursor: pointer; transition: var(--trans);
+}
+.btn-icon:hover { background: rgba(244,63,94,0.15); color: var(--danger); border-color: rgba(244,63,94,0.3); transform: scale(1.08); }
+.btn-icon:active { transform: scale(0.95); }
+.btn-icon.edit:hover { background: rgba(79,142,247,0.15); color: var(--accent); border-color: var(--border3); }
+
+/* Session Progress */
+.session-progress { padding: 12px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.session-prog-text { font-size: 11px; color: var(--text2); white-space: nowrap; font-weight: 700; }
+.session-prog-bar { flex: 1; height: 7px; border-radius: 7px; background: rgba(255,255,255,0.07); overflow: hidden; }
+.session-prog-fill { height: 100%; border-radius: 7px; background: linear-gradient(90deg, var(--p), var(--accent)); transition: width 0.6s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 0 8px var(--glow2); }
+.session-prog-pct { font-size: 13px; font-weight: 900; color: var(--accent); white-space: nowrap; min-width: 40px; text-align: left; font-family: 'Tajawal', sans-serif; }
+
+/* Add Task Row */
+.session-add-task { padding: 14px 22px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: center; }
+.task-input {
+  flex: 1; background: rgba(255,255,255,0.045); border: 1.5px solid var(--border);
+  border-radius: var(--radius2); padding: 12px 16px;
+  color: var(--text); font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 600;
+  outline: none; transition: var(--trans);
+}
+.task-input:focus { border-color: var(--p); background: rgba(79,142,247,0.06); box-shadow: 0 0 0 4px var(--glow2); }
+.task-input::placeholder { color: var(--text3); font-weight: 500; }
+.btn-add-task {
+  height: 46px; padding: 0 22px; border-radius: var(--radius2); border: none;
+  background: linear-gradient(135deg, var(--p), var(--p2));
+  color: #fff; font-size: 15px; cursor: pointer; transition: var(--trans);
+  box-shadow: 0 0 16px var(--glow2), inset 0 1px 0 rgba(255,255,255,0.15);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+}
+.btn-add-task:hover { transform: scale(1.05); box-shadow: 0 0 24px var(--glow); }
+.btn-add-task:active { transform: scale(0.98); }
+
+/* Tasks List */
+.tasks-list { padding: 12px 22px 18px; display: flex; flex-direction: column; gap: 9px; }
+.task-empty { padding: 24px; text-align: center; color: var(--text3); font-size: 13px; font-weight: 600; }
+
+.task-item {
+  border-radius: var(--radius2); border: 1px solid var(--border);
+  padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+  transition: var(--trans); animation: cardSlideIn 0.3s ease;
+  background: rgba(255,255,255,0.02);
+}
+.task-item:hover { border-color: var(--border2); background: rgba(255,255,255,0.04); }
+.task-item.done {
+  background: rgba(16,185,129,0.05);
+  border-color: rgba(16,185,129,0.2);
+}
+.task-item:not(.done) {
+  background: rgba(244,63,94,0.035);
+  border-color: rgba(244,63,94,0.12);
+}
+.task-status-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  transition: var(--trans);
+}
+.task-item.done .task-status-dot { background: var(--success); box-shadow: 0 0 8px rgba(16,185,129,0.7); }
+.task-item:not(.done) .task-status-dot { background: var(--danger); box-shadow: 0 0 8px rgba(244,63,94,0.6); }
+
+.task-text {
+  flex: 1; font-size: 14px; font-weight: 600; color: var(--text);
+  word-break: break-word; line-height: 1.5;
+}
+.task-item.done .task-text { text-decoration: line-through; color: var(--text3); }
+
+.task-edit-input {
+  flex: 1; background: rgba(255,255,255,0.08); border: 1.5px solid var(--p);
+  border-radius: var(--radius3); padding: 7px 12px;
+  color: var(--text); font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 600;
+  outline: none; box-shadow: 0 0 0 3px var(--glow2);
+}
+
+.task-actions { display: flex; gap: 5px; flex-shrink: 0; }
+.task-btn {
+  width: 34px; height: 34px; border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.05); color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; cursor: pointer; transition: var(--trans);
+}
+.task-btn:hover { transform: scale(1.1); }
+.task-btn:active { transform: scale(0.93); }
+.task-btn.complete:hover { background: rgba(16,185,129,0.2); color: var(--success); border-color: rgba(16,185,129,0.3); }
+.task-btn.undo:hover { background: rgba(245,158,11,0.2); color: var(--warn); border-color: rgba(245,158,11,0.3); }
+.task-btn.edit-t:hover { background: rgba(79,142,247,0.2); color: var(--accent); border-color: var(--border3); }
+.task-btn.save-t { background: linear-gradient(135deg, var(--p), var(--p2)); color: #fff; border-color: var(--p); }
+.task-btn.del:hover { background: rgba(244,63,94,0.2); color: var(--danger); border-color: rgba(244,63,94,0.3); }
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  text-align: center; padding: 70px 24px;
+  background: var(--card); border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+}
+.empty-icon { font-size: 60px; margin-bottom: 20px; opacity: 0.35; display: block; }
+.empty-title { font-size: 20px; font-weight: 900; color: var(--text2); margin-bottom: 10px; }
+.empty-desc { font-size: 13px; color: var(--text3); margin-bottom: 28px; }
+.btn-empty {
+  padding: 14px 32px; border-radius: 50px;
+  background: linear-gradient(135deg, var(--p), var(--p2));
+  border: none; color: #fff; font-size: 15px; font-weight: 800;
+  font-family: 'Cairo', sans-serif; cursor: pointer; transition: var(--trans);
+  box-shadow: 0 6px 24px var(--glow2), inset 0 1px 0 rgba(255,255,255,0.18);
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.btn-empty:hover { transform: translateY(-3px); box-shadow: 0 12px 36px var(--glow); }
+.btn-empty:active { transform: translateY(-1px); }
+
+/* ===== NOTIFICATIONS ===== */
+.notif-container {
+  position: fixed; top: 90px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 999; display: flex; flex-direction: column; gap: 10px;
+  width: 380px; max-width: calc(100vw - 32px);
+  pointer-events: none;
+}
+.notif {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 18px; border-radius: 16px;
+  backdrop-filter: blur(24px);
+  border: 1px solid;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  pointer-events: all;
+  animation: notifIn 0.4s cubic-bezier(0.4,0,0.2,1);
+  transition: var(--trans);
+}
+.notif.out { animation: notifOut 0.3s cubic-bezier(0.4,0,0.2,1) forwards; }
+@keyframes notifIn {
+  from { opacity: 0; transform: translateY(-20px) scale(0.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes notifOut {
+  to { opacity: 0; transform: translateY(-12px) scale(0.94); }
+}
+.notif.success { background: rgba(16,185,129,0.14); border-color: rgba(16,185,129,0.28); }
+.notif.info { background: rgba(79,142,247,0.14); border-color: rgba(79,142,247,0.28); }
+.notif.warning { background: rgba(245,158,11,0.14); border-color: rgba(245,158,11,0.28); }
+.notif.error { background: rgba(244,63,94,0.14); border-color: rgba(244,63,94,0.28); }
+.notif-icon { font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+.notif.success .notif-icon { color: var(--success); }
+.notif.info .notif-icon { color: var(--accent); }
+.notif.warning .notif-icon { color: var(--warn); }
+.notif.error .notif-icon { color: var(--danger); }
+.notif-body { flex: 1; }
+.notif-title { font-size: 13px; font-weight: 800; margin-bottom: 2px; }
+.notif-msg { font-size: 12px; color: var(--text2); }
+.notif-close {
+  background: none; border: none; color: var(--text3); cursor: pointer;
+  font-size: 14px; flex-shrink: 0; padding: 2px; transition: var(--trans); line-height: 1;
+}
+.notif-close:hover { color: var(--text); transform: rotate(90deg); }
+
+/* ===== BACK TO TOP ===== */
+.back-top {
+  position: fixed; bottom: 28px; left: 28px; z-index: 200;
+  width: 50px; height: 50px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--p), var(--p2));
+  border: none; color: #fff; font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 24px var(--glow);
+  transition: var(--trans);
+  opacity: 0; pointer-events: none; transform: translateY(16px);
+}
+.back-top.show { opacity: 1; pointer-events: all; transform: translateY(0); }
+.back-top:hover { transform: translateY(-4px); box-shadow: 0 12px 32px var(--glow); }
+.back-top:active { transform: translateY(0); }
+
+/* ===== CONFIRM DIALOG ===== */
+.overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  opacity: 0; pointer-events: none; transition: var(--trans);
+}
+.overlay.show { opacity: 1; pointer-events: all; }
+.dialog {
+  background: #0d1322; border: 1px solid var(--border2);
+  border-radius: 24px; padding: 32px; width: 360px; max-width: 100%;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+  transform: scale(0.92) translateY(20px); transition: var(--trans);
+}
+.overlay.show .dialog { transform: scale(1) translateY(0); }
+.dialog-icon { font-size: 42px; margin-bottom: 16px; display: block; }
+.dialog h3 { font-size: 18px; font-weight: 900; margin-bottom: 10px; }
+.dialog p { font-size: 13px; color: var(--text2); margin-bottom: 24px; line-height: 1.6; }
+.dialog-btns { display: flex; gap: 12px; }
+.btn-cancel {
+  flex: 1; padding: 13px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text2); font-family: 'Cairo', sans-serif;
+  font-size: 14px; font-weight: 800; cursor: pointer; transition: var(--trans);
+}
+.btn-cancel:hover { background: var(--card3); border-color: var(--border2); }
+.btn-danger {
+  flex: 1; padding: 13px; border-radius: 12px; border: none;
+  background: linear-gradient(135deg, #f43f5e, #dc2626);
+  color: #fff; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 800;
+  cursor: pointer; transition: var(--trans);
+  box-shadow: 0 4px 16px rgba(244,63,94,0.3);
+}
+.btn-danger:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(244,63,94,0.45); }
+.btn-danger:active { transform: translateY(0); }
+
+/* ===== VIEWING BANNER ===== */
+.viewing-banner {
+  background: rgba(245,158,11,0.09); border: 1px solid rgba(245,158,11,0.22);
+  border-radius: var(--radius2); padding: 12px 18px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 24px; font-size: 13px; font-weight: 600;
+  animation: cardSlideIn 0.3s ease;
+}
+.viewing-banner i { color: var(--warn); font-size: 16px; }
+
+/* ===== PRINT ===== */
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area {
+    position: absolute; inset: 0; background: #fff; color: #000;
+    font-family: 'Cairo', sans-serif; padding: 30px; direction: rtl;
+  }
+  .print-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 16px; margin-bottom: 24px; }
+  .print-title { font-size: 22px; font-weight: 900; }
+  .print-date { font-size: 13px; color: #555; margin-top: 4px; }
+  .print-stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .print-stat { border: 1px solid #ccc; border-radius: 8px; padding: 12px 16px; text-align: center; flex: 1; min-width: 100px; }
+  .print-stat-num { font-size: 22px; font-weight: 900; }
+  .print-stat-label { font-size: 11px; color: #666; }
+  .print-session { border: 1px solid #ddd; border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+  .print-session-title { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+  .print-session-meta { font-size: 12px; color: #666; margin-bottom: 10px; }
+  .print-task { padding: 5px 0; border-bottom: 1px solid #eee; font-size: 13px; display: flex; gap: 8px; align-items: center; }
+  .print-task-done { text-decoration: line-through; color: #999; }
+  .print-footer { text-align: center; margin-top: 24px; font-size: 11px; color: #999; border-top: 1px solid #ddd; padding-top: 12px; }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+@media (max-width: 768px) {
+  .form-grid { grid-template-columns: 1fr; gap: 12px; }
+  .form-grid-3 { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .header-inner { gap: 10px; padding: 10px 0; }
+  .logo-sub { display: none; }
+  .card-body { padding: 20px; }
+  .main { padding: 24px 16px 70px; }
+  .container { padding: 0 16px; }
+  .header { padding: 0 16px; }
+  .theme-bar { padding: 10px 16px; }
+}
+@media (max-width: 560px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .form-grid-3 { grid-template-columns: 1fr; }
+  .session-time-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .header-clock { display: none; }
+  .main { padding: 16px 12px 70px; }
+  .card-body { padding: 16px; }
+  .session-header { padding: 16px 16px; gap: 10px; }
+  .session-add-task { padding: 12px 16px; }
+  .tasks-list { padding: 10px 16px 14px; }
+  .btn-primary { font-size: 15px; padding: 15px; }
+  .day-nav-today { padding: 0 14px; font-size: 12px; }
+  .day-nav-btn { width: 32px; height: 32px; }
+  .back-top { bottom: 20px; left: 20px; width: 44px; height: 44px; }
+  .stat-num { font-size: 28px; }
+  .session-badge { width: 40px; height: 40px; font-size: 14px; border-radius: 12px; }
+}
+@media (max-width: 360px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .logo-title { font-size: 15px; }
+  .logo-icon { width: 40px; height: 40px; font-size: 17px; }
+  .session-name { font-size: 14px; }
+}
+
+/* helpers */
+.mb-20 { margin-bottom: 20px; }
+.mb-28 { margin-bottom: 28px; }
+.mb-32 { margin-bottom: 32px; }
+</style>
+</head>
+<body>
+
+<!-- Background -->
+<div class="bg-scene">
+  <div class="bg-mesh"></div>
+  <div class="bg-lines"></div>
+  <div class="bg-orb"></div>
+  <div class="bg-orb"></div>
+  <div class="bg-orb"></div>
+</div>
+
+<!-- Notifications -->
+<div class="notif-container" id="notifContainer"></div>
+
+<!-- Confirm Dialog -->
+<div class="overlay" id="confirmOverlay">
+  <div class="dialog">
+    <span class="dialog-icon" id="confirmIcon">🗑️</span>
+    <h3 id="confirmTitle">تأكيد الحذف</h3>
+    <p id="confirmMsg">هل أنت متأكد؟</p>
+    <div class="dialog-btns">
+      <button class="btn-cancel" onclick="closeConfirm()">إلغاء</button>
+      <button class="btn-danger" id="confirmYes" onclick="doConfirm()">تأكيد الحذف</button>
+    </div>
+  </div>
+</div>
+
+<!-- Print Area -->
+<div class="print-area" id="printArea" style="display:none;"></div>
+
+<!-- App -->
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <a class="logo" href="#">
+        <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+        <div class="logo-text">
+          <div class="logo-title">جولات دراسية</div>
+          <div class="logo-sub">نظام إدارة المهام الذكي</div>
+        </div>
+      </a>
+      <div class="header-spacer"></div>
+      <div class="day-nav">
+        <button class="day-nav-btn" onclick="changeDay(-1)" title="اليوم السابق">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+        <button class="day-nav-today" onclick="goToday()">اليوم</button>
+        <button class="day-nav-btn" onclick="changeDay(1)" title="اليوم القادم">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+      </div>
+      <div class="header-clock">
+        <div class="clock-time" id="clockTime">--:--</div>
+        <div class="clock-date" id="clockDate">--</div>
+        <div class="clock-viewing" id="clockViewing" style="display:none;"></div>
+      </div>
+      <button class="btn-header-icon" onclick="printReport()" title="طباعة تقرير اليوم">
+        <i class="fas fa-print"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Theme Bar -->
+  <div class="theme-bar">
+    <div class="theme-bar-inner">
+      <span class="theme-label"><i class="fas fa-palette" style="margin-left:6px;"></i>الثيم</span>
+      <div class="theme-options" id="themeOptions"></div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="main-inner">
+
+      <!-- Viewing Banner -->
+      <div class="viewing-banner" id="viewingBanner" style="display:none;">
+        <i class="fas fa-calendar-alt"></i>
+        <span id="viewingBannerText"></span>
+      </div>
+
+      <!-- Add Round Section -->
+      <div class="mb-32">
+        <div class="section-header mb-20">
+          <div class="section-header-icon"><i class="fas fa-plus-circle"></i></div>
+          <div>
+            <h2>إضافة جولة دراسية جديدة</h2>
+            <p>أنشئ جلستك الدراسية وابدأ تتبع مهامك</p>
+          </div>
+        </div>
+        <div class="card add-round-card">
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group full">
+                <label for="roundName"><i class="fas fa-book-open" style="margin-left:6px;"></i>اسم الجولة</label>
+                <input type="text" id="roundName" class="form-input" placeholder="مثال: مراجعة الفصل الأول في الرياضيات" maxlength="100">
+              </div>
+              <div class="form-group">
+                <label for="roundNum"><i class="fas fa-hashtag" style="margin-left:6px;"></i>رقم الجولة</label>
+                <input type="number" id="roundNum" class="form-input" min="1" value="1">
+              </div>
+              <div class="form-group">
+                <label><i class="fas fa-bolt" style="margin-left:6px;"></i>أوقات جاهزة</label>
+                <div class="time-presets">
+                  <button class="preset-btn" data-s="08:00" data-e="10:00">٨ – ١٠ ص</button>
+                  <button class="preset-btn" data-s="10:00" data-e="12:00">١٠ – ١٢ ص</button>
+                  <button class="preset-btn" data-s="14:00" data-e="16:00">٢ – ٤ م</button>
+                  <button class="preset-btn" data-s="16:00" data-e="18:00">٤ – ٦ م</button>
+                  <button class="preset-btn" data-s="19:00" data-e="21:00">٧ – ٩ م</button>
+                </div>
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="startTime"><i class="fas fa-play" style="margin-left:6px;"></i>وقت البداية</label>
+                <input type="time" id="startTime" class="form-input">
+              </div>
+              <div class="form-group">
+                <label for="endTime"><i class="fas fa-stop" style="margin-left:6px;"></i>وقت النهاية</label>
+                <input type="time" id="endTime" class="form-input">
+              </div>
+            </div>
+            <button class="btn-primary" onclick="addRound()">
+              <i class="fas fa-plus-circle"></i>
+              إضافة الجولة الدراسية
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Section -->
+      <div class="mb-32">
+        <div class="section-header mb-20">
+          <div class="section-header-icon"><i class="fas fa-chart-bar"></i></div>
+          <div>
+            <h2>إحصائيات اليوم</h2>
+            <p id="statsDateLabel">ملخص أداء اليوم الحالي</p>
+          </div>
+        </div>
+        <div class="stats-grid" id="statsGrid"></div>
+      </div>
+
+      <!-- Sessions Section -->
+      <div>
+        <div class="section-header mb-20">
+          <div class="section-header-icon"><i class="fas fa-layer-group"></i></div>
+          <div>
+            <h2>الجلسات الدراسية</h2>
+            <p id="sessionsLabel">الجلسات المسجلة لهذا اليوم</p>
+          </div>
+        </div>
+        <div id="sessionsList"></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Back to top -->
+<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+  <i class="fas fa-chevron-up"></i>
+</button>
+
+<script>
+/* ===================================================
+   STUDY ROUNDS — App Logic
+   =================================================== */
+
+const THEMES = [
+  { id:'blue',   label:'أزرق',   p:'#4f8ef7', p2:'#2563eb', accent:'#60a5fa', glow:'rgba(79,142,247,0.4)',   glow2:'rgba(79,142,247,0.18)',  orb1:'#2563eb', orb2:'#7c3aed', orb3:'#0891b2' },
+  { id:'yellow', label:'ذهبي',   p:'#f59e0b', p2:'#d97706', accent:'#fcd34d', glow:'rgba(245,158,11,0.4)',   glow2:'rgba(245,158,11,0.18)',  orb1:'#d97706', orb2:'#b45309', orb3:'#92400e' },
+  { id:'pink',   label:'زهري',   p:'#ec4899', p2:'#db2777', accent:'#f9a8d4', glow:'rgba(236,72,153,0.4)',   glow2:'rgba(236,72,153,0.18)',  orb1:'#db2777', orb2:'#9333ea', orb3:'#be185d' },
+  { id:'red',    label:'أحمر',   p:'#f43f5e', p2:'#e11d48', accent:'#fca5a5', glow:'rgba(244,63,94,0.4)',    glow2:'rgba(244,63,94,0.18)',   orb1:'#e11d48', orb2:'#9f1239', orb3:'#7f1d1d' },
+  { id:'green',  label:'أخضر',   p:'#10b981', p2:'#059669', accent:'#6ee7b7', glow:'rgba(16,185,129,0.4)',   glow2:'rgba(16,185,129,0.18)',  orb1:'#059669', orb2:'#0284c7', orb3:'#065f46' },
+  { id:'purple', label:'بنفسجي', p:'#a855f7', p2:'#9333ea', accent:'#d8b4fe', glow:'rgba(168,85,247,0.4)',   glow2:'rgba(168,85,247,0.18)',  orb1:'#9333ea', orb2:'#6366f1', orb3:'#7e22ce' },
+];
+
+let currentTheme = THEMES[0];
+let sessions = [];
+let currentDate = getTodayStr();
+let confirmCallback = null;
+
+function getTodayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function pad(n) { return n < 10 ? '0'+n : ''+n; }
+function dateLabel(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(y,m-1,d);
+  return dt.toLocaleDateString('ar-SA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+}
+function isToday(dateStr) { return dateStr === getTodayStr(); }
+
+function init() {
+  loadData();
+  renderThemes();
+  applyTheme(currentTheme);
+  spawnParticles();
+  startClock();
+  renderAll();
+  setupPresets();
+  window.addEventListener('scroll', onScroll);
+  document.addEventListener('keydown', e => { if (e.key==='Escape') closeConfirm(); });
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem('studySessions_v2');
+    sessions = raw ? JSON.parse(raw) : [];
+    const themeId = localStorage.getItem('selectedColor') || 'blue';
+    currentTheme = THEMES.find(t => t.id === themeId) || THEMES[0];
+  } catch(e) { sessions = []; }
+}
+function saveData() {
+  try {
+    localStorage.setItem('studySessions_v2', JSON.stringify(sessions));
+    localStorage.setItem('selectedColor', currentTheme.id);
+  } catch(e) {}
+}
+
+function renderThemes() {
+  const opts = document.getElementById('themeOptions');
+  opts.innerHTML = THEMES.map(t => `
+    <div class="theme-dot ${t.id===currentTheme.id?'active':''}"
+         style="background:${t.p};"
+         title="${t.label}"
+         onclick="selectTheme('${t.id}')"></div>
+  `).join('');
+}
+function selectTheme(id) {
+  currentTheme = THEMES.find(t=>t.id===id) || THEMES[0];
+  saveData(); applyTheme(currentTheme); renderThemes();
+  notify('info', 'تم تغيير الثيم', `تم تطبيق ثيم ${currentTheme.label} 🎨`);
+}
+function applyTheme(t) {
+  const r = document.documentElement.style;
+  r.setProperty('--p', t.p); r.setProperty('--p2', t.p2);
+  r.setProperty('--accent', t.accent); r.setProperty('--glow', t.glow); r.setProperty('--glow2', t.glow2);
+  const orbs = document.querySelectorAll('.bg-orb');
+  if (orbs[0]) orbs[0].style.background = `radial-gradient(circle, ${t.orb1} 0%, transparent 65%)`;
+  if (orbs[1]) orbs[1].style.background = `radial-gradient(circle, ${t.orb2} 0%, transparent 65%)`;
+  if (orbs[2]) orbs[2].style.background = `radial-gradient(circle, ${t.orb3} 0%, transparent 65%)`;
+}
+
+function spawnParticles() {
+  const scene = document.querySelector('.bg-scene');
+  for (let i = 0; i < 22; i++) {
+    const p = document.createElement('div');
+    p.classList.add('particle');
+    const size = Math.random() * 4 + 2;
+    p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;animation-duration:${Math.random()*22+16}s;animation-delay:${Math.random()*-25}s;--drift:${(Math.random()-0.5)*140}px;`;
+    scene.appendChild(p);
+  }
+}
+
+function startClock() {
+  function tick() {
+    const now = new Date();
+    const h = pad(now.getHours()), m = pad(now.getMinutes()), s = pad(now.getSeconds());
+    document.getElementById('clockTime').textContent = `${h}:${m}:${s}`;
+    document.getElementById('clockDate').textContent = now.toLocaleDateString('ar-SA', { weekday:'short', month:'short', day:'numeric' });
+    const cv = document.getElementById('clockViewing');
+    if (!isToday(currentDate)) {
+      cv.style.display = 'block';
+      cv.textContent = `استعراض: ${dateLabel(currentDate).split('،')[0]}`;
+    } else { cv.style.display = 'none'; }
+  }
+  tick(); setInterval(tick, 1000);
+}
+
+function changeDay(delta) {
+  const [y,m,d] = currentDate.split('-').map(Number);
+  const dt = new Date(y,m-1,d); dt.setDate(dt.getDate()+delta);
+  currentDate = `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+  updateViewingUI(); renderAll();
+  notify('info', 'تم التنقل', dateLabel(currentDate));
+}
+function goToday() {
+  currentDate = getTodayStr(); updateViewingUI(); renderAll();
+  notify('info', 'اليوم الحالي', dateLabel(currentDate));
+}
+function updateViewingUI() {
+  const banner = document.getElementById('viewingBanner');
+  const bannerTxt = document.getElementById('viewingBannerText');
+  const statsLbl = document.getElementById('statsDateLabel');
+  const sessLbl = document.getElementById('sessionsLabel');
+  if (!isToday(currentDate)) {
+    banner.style.display = 'flex';
+    bannerTxt.innerHTML = `<strong>تستعرض يوم: ${dateLabel(currentDate)}</strong> — اضغط "اليوم" للعودة`;
+    statsLbl.textContent = `ملخص يوم ${dateLabel(currentDate).split('،')[0]}`;
+    sessLbl.textContent = `الجلسات المسجلة ليوم ${dateLabel(currentDate).split('،')[0]}`;
+  } else {
+    banner.style.display = 'none';
+    statsLbl.textContent = 'ملخص أداء اليوم الحالي';
+    sessLbl.textContent = 'الجلسات المسجلة لهذا اليوم';
+  }
+}
+
+function setupPresets() {
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('startTime').value = btn.dataset.s;
+      document.getElementById('endTime').value = btn.dataset.e;
+      document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      setTimeout(()=>btn.classList.remove('selected'),1500);
+    });
+  });
+}
+
+function getNextRoundNum() {
+  const ds = sessions.filter(s=>s.date===currentDate);
+  if (!ds.length) return 1;
+  return Math.max(...ds.map(s=>s.number||0))+1;
+}
+
+function addRound() {
+  const name = document.getElementById('roundName').value.trim();
+  const num = parseInt(document.getElementById('roundNum').value)||1;
+  const start = document.getElementById('startTime').value;
+  const end = document.getElementById('endTime').value;
+  if (!name) { notify('warning','اسم مطلوب','يرجى إدخال اسم الجولة الدراسية'); document.getElementById('roundName').focus(); return; }
+  if (!start||!end) { notify('warning','الوقت مطلوب','يرجى تحديد وقت البداية والنهاية'); return; }
+  const session = {
+    id:'sess_'+Date.now()+'_'+Math.random().toString(36).substr(2,6),
+    name, number:num, startTime:start, endTime:end,
+    tasks:[], createdAt:new Date().toISOString(), date:currentDate
+  };
+  sessions.push(session); saveData(); renderAll();
+  document.getElementById('roundName').value = '';
+  document.getElementById('roundNum').value = getNextRoundNum();
+  document.getElementById('startTime').value = '';
+  document.getElementById('endTime').value = '';
+  notify('success','تم الإنشاء',`تم إنشاء جولة "${name}" بنجاح 🎉`);
+}
+
+function deleteSession(id) {
+  const s = sessions.find(s=>s.id===id);
+  if (!s) return;
+  openConfirm('🗑️','حذف الجولة',`هل تريد حذف جولة "${s.name}" وجميع مهامها؟`,()=>{
+    sessions = sessions.filter(s=>s.id!==id);
+    saveData(); renderAll();
+    notify('info','تم الحذف','تم حذف الجولة الدراسية');
+  });
+}
+
+function toggleTimeEdit(id) {
+  const card = document.getElementById('sess_'+id);
+  if (!card) return;
+  const disp = card.querySelector('.session-time-display');
+  const edit = card.querySelector('.session-time-edit');
+  const show = !edit.classList.contains('show');
+  disp.style.display = show ? 'none' : 'flex';
+  edit.classList.toggle('show', show);
+}
+function saveSessionTime(id) {
+  const card = document.getElementById('sess_'+id);
+  if (!card) return;
+  const sInput = card.querySelector('.time-edit-start');
+  const eInput = card.querySelector('.time-edit-end');
+  const s = sessions.find(s=>s.id===id);
+  if (!s) return;
+  if (!sInput.value||!eInput.value) { notify('warning','الوقت مطلوب','يرجى تحديد كلا الوقتين'); return; }
+  s.startTime = sInput.value; s.endTime = eInput.value;
+  saveData(); renderAll();
+  notify('success','تم التعديل','تم تحديث وقت الجلسة');
+}
+
+function addTask(sessId) {
+  const card = document.getElementById('sess_'+sessId);
+  if (!card) return;
+  const input = card.querySelector('.task-input');
+  const text = input.value.trim();
+  if (!text) { input.focus(); return; }
+  const s = sessions.find(s=>s.id===sessId);
+  if (!s) return;
+  s.tasks.push({ id:'task_'+Date.now()+'_'+Math.random().toString(36).substr(2,4), text, completed:false, createdAt:new Date().toISOString() });
+  saveData(); renderAll();
+  notify('success','مهمة جديدة',`تمت إضافة: "${text.substring(0,30)}"`);
+}
+function completeTask(sessId, taskId, val) {
+  const s = sessions.find(s=>s.id===sessId);
+  if (!s) return;
+  const t = s.tasks.find(t=>t.id===taskId);
+  if (!t) return;
+  t.completed = val; saveData(); renderAll();
+  notify(val?'success':'info', val?'أُنجزت! 🎯':'أُرجعت', val?'رائع، استمر! 💪':'تم إرجاع المهمة لغير مكتملة');
+}
+function deleteTask(sessId, taskId) {
+  const s = sessions.find(s=>s.id===sessId);
+  if (!s) return;
+  openConfirm('🗑️','حذف المهمة','هل تريد حذف هذه المهمة؟',()=>{
+    s.tasks = s.tasks.filter(t=>t.id!==taskId);
+    saveData(); renderAll();
+    notify('info','حُذفت','تم حذف المهمة');
+  });
+}
+function startEditTask(sessId, taskId) {
+  const el = document.getElementById(`task_${taskId}`);
+  if (!el) return;
+  const s = sessions.find(s=>s.id===sessId);
+  const t = s?.tasks.find(t=>t.id===taskId);
+  if (!t) return;
+  const textEl = el.querySelector('.task-text');
+  const actionsEl = el.querySelector('.task-actions');
+  const inp = document.createElement('input');
+  inp.className = 'task-edit-input'; inp.value = t.text; inp.style.flex = '1';
+  textEl.replaceWith(inp);
+  actionsEl.innerHTML = `
+    <button class="task-btn save-t" onclick="saveEditTask('${sessId}','${taskId}')"><i class="fas fa-check"></i></button>
+    <button class="task-btn" onclick="cancelEditTask('${sessId}','${taskId}')"><i class="fas fa-times"></i></button>
+  `;
+  inp.focus(); inp.select();
+  inp.addEventListener('keydown', e => {
+    if (e.key==='Enter') saveEditTask(sessId,taskId);
+    if (e.key==='Escape') cancelEditTask(sessId,taskId);
+  });
+}
+function saveEditTask(sessId, taskId) {
+  const el = document.getElementById(`task_${taskId}`);
+  if (!el) return;
+  const inp = el.querySelector('.task-edit-input');
+  const text = inp?.value.trim();
+  if (!text) return;
+  const s = sessions.find(s=>s.id===sessId);
+  const t = s?.tasks.find(t=>t.id===taskId);
+  if (!t) return;
+  t.text = text; saveData(); renderAll();
+  notify('success','تم التعديل','تم تحديث نص المهمة');
+}
+function cancelEditTask() { renderAll(); }
+
+function getStats() {
+  const ds = sessions.filter(s=>s.date===currentDate);
+  let total=0, done=0, activeSessions=0;
+  ds.forEach(s=>{
+    total += s.tasks.length;
+    const d = s.tasks.filter(t=>t.completed).length;
+    done += d;
+    if (s.tasks.length > d) activeSessions++;
+  });
+  const pct = total>0 ? Math.round(done/total*100) : 0;
+  return { total, done, remaining: total-done, activeSessions, pct, sessionCount: ds.length };
+}
+
+function renderAll() { renderStats(); renderSessions(); document.getElementById('roundNum').value = getNextRoundNum(); }
+
+function renderStats() {
+  const { total, done, remaining, activeSessions, pct } = getStats();
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(244,63,94,0.13);color:#f43f5e;"><i class="fas fa-list-ul"></i></div>
+      <div class="stat-num">${remaining}</div>
+      <div class="stat-label">المهام المتبقية</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(16,185,129,0.13);color:#10b981;"><i class="fas fa-check-circle"></i></div>
+      <div class="stat-num">${done}</div>
+      <div class="stat-label">المهام المنجزة</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(79,142,247,0.13);color:var(--accent);"><i class="fas fa-bolt"></i></div>
+      <div class="stat-num">${activeSessions}</div>
+      <div class="stat-label">الجلسات النشطة</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(168,85,247,0.13);color:#a855f7;"><i class="fas fa-chart-pie"></i></div>
+      <div class="stat-num">${pct}%</div>
+      <div class="stat-label">نسبة الإنجاز</div>
+      <div class="stat-progress">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;"></div></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSessions() {
+  const list = document.getElementById('sessionsList');
+  const ds = sessions.filter(s=>s.date===currentDate).sort((a,b)=>(a.number||0)-(b.number||0)||(a.createdAt>b.createdAt?1:-1));
+  if (!ds.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">📚</span>
+        <div class="empty-title">لا توجد جلسات لهذا اليوم</div>
+        <div class="empty-desc">ابدأ يومك الدراسي بإنشاء أول جولة دراسية</div>
+        <button class="btn-empty" onclick="document.getElementById('roundName').focus()">
+          <i class="fas fa-plus"></i> إضافة أول جولة
+        </button>
+      </div>`;
+    return;
+  }
+  list.innerHTML = ds.map(s => renderSessionCard(s)).join('');
+}
+
+function renderSessionCard(s) {
+  const done = s.tasks.filter(t=>t.completed).length;
+  const total = s.tasks.length;
+  const pct = total > 0 ? Math.round(done/total*100) : 0;
+  const tasksHTML = s.tasks.length === 0
+    ? `<div class="task-empty"><i class="fas fa-clipboard-list" style="margin-left:6px;opacity:0.3;"></i>لا توجد مهام بعد — أضف أولى مهامك</div>`
+    : s.tasks.map(t => renderTask(s.id, t)).join('');
+  return `
+  <div class="session-card" id="sess_${s.id}">
+    <div class="session-header">
+      <div class="session-badge">${s.number||'?'}</div>
+      <div class="session-info">
+        <div class="session-name">${escHtml(s.name)}</div>
+        <div class="session-time-row">
+          <div class="session-time-display" onclick="toggleTimeEdit('${s.id}')" title="اضغط لتعديل الوقت">
+            <i class="fas fa-clock"></i>
+            ${s.startTime||'--:--'} — ${s.endTime||'--:--'}
+            <i class="fas fa-pen" style="font-size:9px;opacity:0.5;margin-right:2px;"></i>
+          </div>
+          <div class="session-time-edit">
+            <input type="time" class="time-edit-input time-edit-start" value="${s.startTime||''}">
+            <span style="color:var(--text3);font-size:12px;">—</span>
+            <input type="time" class="time-edit-input time-edit-end" value="${s.endTime||''}">
+            <button class="btn-save-time" onclick="saveSessionTime('${s.id}')">حفظ</button>
+            <button class="btn-cancel-time" onclick="toggleTimeEdit('${s.id}')">إلغاء</button>
+          </div>
+        </div>
+      </div>
+      <div class="session-header-actions">
+        <button class="btn-icon" onclick="deleteSession('${s.id}')" title="حذف الجولة"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>
+    <div class="session-progress">
+      <span class="session-prog-text">${done}/${total} مهمة</span>
+      <div class="session-prog-bar"><div class="session-prog-fill" style="width:${pct}%;"></div></div>
+      <span class="session-prog-pct">${pct}%</span>
+    </div>
+    <div class="session-add-task">
+      <input type="text" class="task-input" placeholder="اكتب مهمة جديدة واضغط Enter..." maxlength="150"
+        onkeydown="if(event.key==='Enter')addTask('${s.id}')">
+      <button class="btn-add-task" onclick="addTask('${s.id}')"><i class="fas fa-plus"></i></button>
+    </div>
+    <div class="tasks-list">${tasksHTML}</div>
+  </div>`;
+}
+
+function renderTask(sessId, t) {
+  return `
+  <div class="task-item ${t.completed?'done':''}" id="task_${t.id}">
+    <div class="task-status-dot"></div>
+    <div class="task-text">${escHtml(t.text)}</div>
+    <div class="task-actions">
+      ${t.completed
+        ? `<button class="task-btn undo" onclick="completeTask('${sessId}','${t.id}',false)" title="إرجاع غير مكتملة"><i class="fas fa-undo"></i></button>`
+        : `<button class="task-btn complete" onclick="completeTask('${sessId}','${t.id}',true)" title="إنجاز"><i class="fas fa-check"></i></button>`
+      }
+      <button class="task-btn edit-t" onclick="startEditTask('${sessId}','${t.id}')" title="تعديل"><i class="fas fa-pen"></i></button>
+      <button class="task-btn del" onclick="deleteTask('${sessId}','${t.id}')" title="حذف"><i class="fas fa-trash"></i></button>
+    </div>
+  </div>`;
+}
+
+function printReport() {
+  const ds = sessions.filter(s=>s.date===currentDate).sort((a,b)=>(a.number||0)-(b.number||0));
+  const { total, done, remaining, pct, sessionCount } = getStats();
+  const now = new Date();
+  const html = `
+    <div class="print-header">
+      <div class="print-title">📚 جولات دراسية — تقرير اليوم</div>
+      <div class="print-date">${dateLabel(currentDate)} | طُبع في ${now.toLocaleTimeString('ar-SA')}</div>
+    </div>
+    <div class="print-stats">
+      <div class="print-stat"><div class="print-stat-num">${remaining}</div><div class="print-stat-label">مهام متبقية</div></div>
+      <div class="print-stat"><div class="print-stat-num">${done}</div><div class="print-stat-label">مهام منجزة</div></div>
+      <div class="print-stat"><div class="print-stat-num">${sessionCount}</div><div class="print-stat-label">إجمالي الجلسات</div></div>
+      <div class="print-stat"><div class="print-stat-num">${pct}%</div><div class="print-stat-label">نسبة الإنجاز</div></div>
+    </div>
+    ${ds.map(s=>{
+      const d=s.tasks.filter(t=>t.completed).length;
+      const p=s.tasks.length>0?Math.round(d/s.tasks.length*100):0;
+      return `<div class="print-session">
+        <div class="print-session-title">الجولة ${s.number}: ${escHtml(s.name)}</div>
+        <div class="print-session-meta">⏰ ${s.startTime||'--'} — ${s.endTime||'--'} | الإنجاز: ${d}/${s.tasks.length} (${p}%)</div>
+        ${s.tasks.map(t=>`<div class="print-task"><span>${t.completed?'✅':'⬜'}</span><span class="${t.completed?'print-task-done':''}">${escHtml(t.text)}</span></div>`).join('')}
+      </div>`;
+    }).join('')}
+    <div class="print-footer">تم توليد هذا التقرير من نظام "جولات دراسية"</div>`;
+  const printArea = document.getElementById('printArea');
+  printArea.style.display = 'block';
+  printArea.innerHTML = html;
+  window.print();
+  setTimeout(()=>{ printArea.style.display='none'; printArea.innerHTML=''; }, 1000);
+  notify('info','طباعة','جاري فتح نافذة الطباعة...');
+}
+
+function notify(type, title, msg) {
+  const icons = { success:'fa-check-circle', info:'fa-info-circle', warning:'fa-exclamation-triangle', error:'fa-times-circle' };
+  const id = 'n_'+Date.now();
+  const el = document.createElement('div');
+  el.className = `notif ${type}`; el.id = id;
+  el.innerHTML = `
+    <i class="fas ${icons[type]||icons.info} notif-icon"></i>
+    <div class="notif-body"><div class="notif-title">${title}</div><div class="notif-msg">${msg}</div></div>
+    <button class="notif-close" onclick="closeNotif('${id}')"><i class="fas fa-times"></i></button>`;
+  document.getElementById('notifContainer').appendChild(el);
+  setTimeout(()=>closeNotif(id), 4200);
+}
+function closeNotif(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('out');
+  setTimeout(()=>el.remove(), 300);
+}
+
+function openConfirm(icon, title, msg, cb) {
+  document.getElementById('confirmIcon').textContent = icon;
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  confirmCallback = cb;
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('show');
+  confirmCallback = null;
+}
+function doConfirm() { if (confirmCallback) confirmCallback(); closeConfirm(); }
+
+function onScroll() {
+  document.getElementById('backTop').classList.toggle('show', window.scrollY > 300);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>
